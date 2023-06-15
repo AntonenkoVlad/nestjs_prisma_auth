@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import {User} from '@prisma/client';
+import {RoleEnum, User} from '@prisma/client';
 import {JwtService} from '@nestjs/jwt';
 
 import {PrismaService} from './../prisma/prisma.service';
@@ -63,7 +63,7 @@ export class AuthService {
   }
 
   async login(user: User) {
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, user.role);
 
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
@@ -83,7 +83,7 @@ export class AuthService {
 
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, user.role);
 
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
@@ -103,12 +103,13 @@ export class AuthService {
     });
   }
 
-  async getTokens(userId: string, username: string) {
+  async getTokens(userId: string, username: string, role: RoleEnum) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
           username,
+          role
         },
         {
           secret: process.env.ACCESS_TOKEN_SECRET,
@@ -119,6 +120,7 @@ export class AuthService {
         {
           sub: userId,
           username,
+          role
         },
         {
           secret: process.env.REFRESH_TOKEN_SECRET,

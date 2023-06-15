@@ -16,6 +16,8 @@ import {CreateUserDto} from './dto/create-user.dto';
 import {UpdateUserDto} from './dto/update-user.dto';
 import {UserEntity} from './entities/user.entity';
 import {JwtAuthGuard} from 'src/auth/guards/jwt-auth.guard';
+import {RoleGuard} from 'src/auth/guards/role.guard';
+import {Roles} from 'src/auth/roles.decorator';
 
 @Controller('users')
 @ApiTags('users')
@@ -28,8 +30,9 @@ export class UsersController {
     return new UserEntity(await this.usersService.create(createUserDto));
   }
 
+  @Roles('ADMIN')
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
   @ApiOkResponse({type: UserEntity, isArray: true})
   async findAll() {
@@ -56,8 +59,9 @@ export class UsersController {
     return new UserEntity(await this.usersService.update(id, updateUserDto));
   }
 
+  @Roles('ADMIN')
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
   @ApiOkResponse({type: UserEntity})
   async remove(@Param('id', ParseUUIDPipe) id: string) {
