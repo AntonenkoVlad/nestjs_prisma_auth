@@ -30,7 +30,6 @@ export class UsersController {
     return new UserEntity(await this.usersService.create(createUserDto));
   }
 
-  @Roles('ADMIN')
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
