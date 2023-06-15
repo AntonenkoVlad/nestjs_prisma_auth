@@ -1,19 +1,43 @@
 import {
-  ConflictException,
   Injectable,
   NotFoundException,
+  ConflictException,
+  ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import {User} from '@prisma/client';
 import {JwtService} from '@nestjs/jwt';
 
 import {PrismaService} from './../prisma/prisma.service';
+import {UsersService} from '../users/users.service';
 import {AuthEntity} from './entity/auth.entity';
-import {UsersService} from 'src/users/users.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService, private userService: UsersService) { }
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private userService: UsersService
+  ) { }
+
+  async validateUser(username: string, password: string) {
+    const user = await this.prisma.user.findUnique({where: {email: username}});
+
+    if (!user) {
+      throw new NotFoundException(`No user found for email: ${username}`);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid password');
+    } else {
+      const {password, ...result} = user;
+
+      return result;
+    }
+  }
 
   async signUp(email: string, password: string, name: string): Promise<AuthEntity> {
     const user = await this.prisma.user.findUnique({where: {email: email}});
@@ -24,26 +48,88 @@ export class AuthService {
 
     const newUser = await this.userService.create({email, password, name})
 
+    const payload = {
+      username: newUser.email,
+      role: newUser.role,
+      sub: {
+        userId: newUser.id
+      }
+    }
+
     return {
-      accessToken: this.jwtService.sign({userId: newUser.id, role: newUser.role}),
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, {expiresIn: process.env.REFRESH_TOKEN_EXPIRATION})
     };
   }
 
-  async login(email: string, password: string): Promise<AuthEntity> {
-    const user = await this.prisma.user.findUnique({where: {email: email}});
+  async login(user: User) {
+    const tokens = await this.getTokens(user.id, user.email);
 
-    if (!user) {
-      throw new NotFoundException(`No user found for email: ${email}`);
-    }
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    return tokens;
+  }
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
-    }
+  async refreshTokens(userId: string, refreshToken: string) {
+    const user = await this.prisma.user.findUnique({where: {id: userId}});
+
+    if (!user || !user.refreshToken)
+      throw new ForbiddenException('Access Denied');
+
+    const refreshTokenMatches = await bcrypt.compare(
+      refreshToken,
+      user.refreshToken,
+    );
+
+    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+
+    const tokens = await this.getTokens(user.id, user.email);
+
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return tokens;
+  }
+
+  async hashData(data: string) {
+    return await bcrypt.hash(data, 10);
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const hashedRefreshToken = await this.hashData(refreshToken);
+
+    await this.prisma.user.update({
+      where: {id: userId},
+      data: {refreshToken: hashedRefreshToken}
+    });
+  }
+
+  async getTokens(userId: string, username: string) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(
+        {
+          sub: userId,
+          username,
+        },
+        {
+          secret: process.env.ACCESS_TOKEN_SECRET,
+          expiresIn: process.env.ACCESS_TOKEN_EXPIRATION || '15',
+        },
+      ),
+      this.jwtService.signAsync(
+        {
+          sub: userId,
+          username,
+        },
+        {
+          secret: process.env.REFRESH_TOKEN_SECRET,
+          expiresIn: process.env.REFRESH_TOKEN_EXPIRATION || '7d',
+        },
+      ),
+    ]);
 
     return {
-      accessToken: this.jwtService.sign({userId: user.id, role: user.role}),
+      accessToken,
+      refreshToken,
     };
   }
 }

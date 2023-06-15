@@ -8,19 +8,20 @@ datasource db {
 }
 
 enum RoleEnum {
-  user
-  admin
+  USER
+  ADMIN
 }
 
 model User {
-  id        String    @id @default(uuid())
-  name      String    @db.VarChar(255)
-  email     String    @unique
-  password  String
-  verified  Boolean   @default(false)
-  role      RoleEnum? @default(user)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  name          String    @db.VarChar(255)
+  email         String    @unique
+  password      String
+  verified      Boolean   @default(false)
+  role          RoleEnum? @default(USER)
+  refreshToken String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map(name: "users")
 }

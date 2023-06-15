@@ -15,7 +15,7 @@ import {UsersService} from './users.service';
 import {CreateUserDto} from './dto/create-user.dto';
 import {UpdateUserDto} from './dto/update-user.dto';
 import {UserEntity} from './entities/user.entity';
-import {JwtAuthGuard} from 'src/auth/jwt-auth.guard';
+import {JwtAuthGuard} from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('users')
 @ApiTags('users')
