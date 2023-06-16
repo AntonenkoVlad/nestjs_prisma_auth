@@ -1,15 +1,16 @@
-import {ApiProperty, OmitType, PartialType} from '@nestjs/swagger';
-import {CreateUserDto} from './create-user.dto';
-import {IsBoolean, IsOptional} from 'class-validator';
 import {RoleEnum} from '@prisma/client';
+import {ApiProperty, PartialType} from '@nestjs/swagger';
 
-export class UpdateUserDto extends CreateUserDto {
+import {IsBoolean, IsOptional} from 'class-validator';
+import {CreateUserDto} from './create-user.dto';
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsBoolean()
   @IsOptional()
   @ApiProperty()
-  validated?: boolean
+  emailValidated?: boolean;
 
   @IsOptional()
   @ApiProperty()
-  role?: RoleEnum
+  role?: RoleEnum;
 }
