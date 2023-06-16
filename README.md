@@ -17,6 +17,8 @@ EMAIL_PASSWORD=app_password_from_google
 EMAIL_COMPANY=any_value
 
 PUBLIC_URL=your_public_app_url
+```
+
 ## Installation
 
 ```bash
