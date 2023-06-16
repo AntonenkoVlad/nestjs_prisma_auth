@@ -12,16 +12,35 @@ enum RoleEnum {
   ADMIN
 }
 
+enum TokenEnum {
+  RESET_PASSWORD
+  EMAIL_VERIFICATION
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String    @db.VarChar(255)
   email         String    @unique
   password      String
-  verified      Boolean   @default(false)
+  emailVerified Boolean   @default(false)
   role          RoleEnum? @default(USER)
-  refreshToken String?
+  refreshToken  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  tokens        Token[]
 
   @@map(name: "users")
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  email     String
+  token     String
+  type      TokenEnum
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map(name: "tokens")
 }

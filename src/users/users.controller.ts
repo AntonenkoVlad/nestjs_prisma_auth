@@ -9,7 +9,7 @@ import {
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import {ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags} from '@nestjs/swagger';
+import {ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags} from '@nestjs/swagger';
 
 import {UsersService} from './users.service';
 import {CreateUserDto} from './dto/create-user.dto';
@@ -62,7 +62,7 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({type: UserEntity})
+  @ApiNoContentResponse()
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     return new UserEntity(await this.usersService.remove(id));
   }
