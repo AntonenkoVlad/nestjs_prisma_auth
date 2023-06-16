@@ -1,15 +1,15 @@
-import {NestFactory} from '@nestjs/core';
-import {ValidationPipe} from '@nestjs/common';
-import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-import {AppModule} from './app.module';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log']
+    logger: ['error', 'warn', 'log'],
   });
 
-  app.useGlobalPipes(new ValidationPipe({whitelist: true}));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   const config = new DocumentBuilder()
     .setTitle('Median')

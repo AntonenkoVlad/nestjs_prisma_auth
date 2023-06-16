@@ -9,23 +9,29 @@ import {
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import {ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags} from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
-import {UsersService} from './users.service';
-import {CreateUserDto} from './dto/create-user.dto';
-import {UpdateUserDto} from './dto/update-user.dto';
-import {UserEntity} from './entities/user.entity';
-import {JwtAuthGuard} from 'src/auth/guards/jwt-auth.guard';
-import {RoleGuard} from 'src/auth/guards/role.guard';
-import {Roles} from 'src/auth/roles.decorator';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserEntity } from './entities/user.entity';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 @Controller('users')
 @ApiTags('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiCreatedResponse({type: UserEntity})
+  @ApiCreatedResponse({ type: UserEntity })
   async create(@Body() createUserDto: CreateUserDto) {
     return new UserEntity(await this.usersService.create(createUserDto));
   }
@@ -33,7 +39,7 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({type: UserEntity, isArray: true})
+  @ApiOkResponse({ type: UserEntity, isArray: true })
   async findAll() {
     const users = await this.usersService.findAll();
     return users.map((user) => new UserEntity(user));
@@ -42,7 +48,7 @@ export class UsersController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({type: UserEntity})
+  @ApiOkResponse({ type: UserEntity })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return new UserEntity(await this.usersService.findOne(id));
   }
@@ -50,7 +56,7 @@ export class UsersController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiCreatedResponse({type: UserEntity})
+  @ApiCreatedResponse({ type: UserEntity })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,

@@ -1,5 +1,5 @@
-import {ApiProperty} from '@nestjs/swagger';
-import {Token, TokenEnum} from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
+import { Token, TokenEnum } from '@prisma/client';
 
 export class TokenEntity implements Token {
   @ApiProperty()
@@ -12,7 +12,7 @@ export class TokenEntity implements Token {
   token: string;
 
   @ApiProperty({
-    enum: TokenEnum
+    enum: TokenEnum,
   })
   type: TokenEnum;
 

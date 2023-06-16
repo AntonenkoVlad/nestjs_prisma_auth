@@ -1,9 +1,9 @@
-import {MailerService} from "@nestjs-modules/mailer";
-import {Injectable} from "@nestjs/common";
+import { MailerService } from '@nestjs-modules/mailer';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MailService {
-  constructor(private mailerService: MailerService) { }
+  constructor(private mailerService: MailerService) {}
 
   async sendVerifyEmail(email: string, name: string, link: string) {
     try {
@@ -13,11 +13,11 @@ export class MailService {
         template: 'verifyEmail',
         context: {
           name: name,
-          link
-        }
-      })
+          link,
+        },
+      });
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
@@ -28,11 +28,11 @@ export class MailService {
         subject: 'Change Your Password',
         template: 'resetPasswordEmail',
         context: {
-          link
-        }
-      })
+          link,
+        },
+      });
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 }

@@ -1,6 +1,6 @@
-import {Exclude} from 'class-transformer';
-import {ApiProperty} from '@nestjs/swagger';
-import {RoleEnum, User} from '@prisma/client';
+import { Exclude } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { RoleEnum, User } from '@prisma/client';
 
 export class UserEntity implements User {
   constructor(partial: Partial<UserEntity>) {
@@ -23,7 +23,7 @@ export class UserEntity implements User {
   refreshToken: string;
 
   @ApiProperty({
-    enum: RoleEnum
+    enum: RoleEnum,
   })
   role: RoleEnum;
 
