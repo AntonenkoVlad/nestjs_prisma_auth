@@ -10,6 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -26,6 +27,7 @@ import { AuthEntity } from './entity/auth.entity';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignUpDto } from './dto/signup.dto';
+import {JwtAuthGuard} from './guards/jwt-auth.guard';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -38,6 +40,14 @@ export class AuthController {
   @ApiOkResponse({ type: AuthEntity })
   async login(@Req() req) {
     return await this.authService.login(req.user);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({type: Boolean})
+  async getUser(@Body() {userId}: {userId: string}) {
+    return this.authService.logout(userId);
   }
 
   @Post('signup')

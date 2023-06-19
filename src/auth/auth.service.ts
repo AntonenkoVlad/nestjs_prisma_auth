@@ -8,16 +8,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt';
-import { RoleEnum, TokenEnum, User } from '@prisma/client';
+import {JwtService} from '@nestjs/jwt';
+import {RoleEnum, TokenEnum, User} from '@prisma/client';
 
-import { ResetPasswordDto } from './dto/resetPassword.dto';
-import { PrismaService } from './../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
-import { TokenEntity } from './entity/token.entity';
-import { MailService } from '../mails/MailService';
-import { AuthEntity } from './entity/auth.entity';
-import { SignUpDto } from './dto/signup.dto';
+import {ResetPasswordDto} from './dto/resetPassword.dto';
+import {PrismaService} from './../prisma/prisma.service';
+import {UsersService} from '../users/users.service';
+import {TokenEntity} from './entity/token.entity';
+import {MailService} from '../mails/MailService';
+import {AuthEntity} from './entity/auth.entity';
+import {SignUpDto} from './dto/signup.dto';
 
 @Injectable()
 export class AuthService {
@@ -26,34 +26,34 @@ export class AuthService {
     private jwtService: JwtService,
     private userService: UsersService,
     private mailService: MailService,
-  ) {}
+  ) { }
 
-  async validateUser(username: string, password: string) {
+  async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
-      where: { email: username },
+      where: {email},
     });
 
     if (!user)
-      throw new NotFoundException(`No user found for email: ${username}`);
+      throw new HttpException('LOGIN.INVALID_CREDENTIALS', HttpStatus.BAD_REQUEST)
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
+      throw new HttpException('LOGIN.INVALID_CREDENTIALS', HttpStatus.BAD_REQUEST)
     } else {
-      const { password, ...result } = user;
+      const {password, ...result} = user;
 
       return result;
     }
   }
 
   async signUp(signUpDto: SignUpDto): Promise<AuthEntity> {
-    const { email, password, name } = signUpDto;
-    const user = await this.prisma.user.findUnique({ where: { email: email } });
+    const {email, password, name} = signUpDto;
+    const user = await this.prisma.user.findUnique({where: {email: email}});
 
     if (user) throw new ConflictException('User already exist');
 
-    const newUser = await this.userService.create({ email, password, name });
+    const newUser = await this.userService.create({email, password, name});
 
     const tokenResult = await this.createEmailToken(
       newUser.id,
@@ -72,7 +72,10 @@ export class AuthService {
       newUser.role,
     );
 
-    return tokens;
+    return {
+      user: newUser,
+      ...tokens
+    };
   }
 
   async login(user: User) {
@@ -80,16 +83,28 @@ export class AuthService {
 
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-    return tokens;
+    return {
+      user,
+      ...tokens
+    };
+  }
+
+  async logout(userId: string) {
+    await this.prisma.user.update({
+      where: {id: userId},
+      data: {
+        refreshToken: null
+      }
+    });
   }
 
   async verifyEmail(token: string) {
-    const tokenFromDb = await this.prisma.token.findFirst({ where: { token } });
+    const tokenFromDb = await this.prisma.token.findFirst({where: {token}});
 
     if (!tokenFromDb) throw new ForbiddenException('Access Denied');
 
-    const { email } = await this.prisma.user.findUnique({
-      where: { email: tokenFromDb.email },
+    const {email} = await this.prisma.user.findUnique({
+      where: {email: tokenFromDb.email},
     });
 
     if (email) {
@@ -102,13 +117,13 @@ export class AuthService {
         },
       });
 
-      await this.prisma.token.delete({ where: { id: tokenFromDb.id } });
+      await this.prisma.token.delete({where: {id: tokenFromDb.id}});
     }
   }
 
   async refreshTokens(userId: string, refreshToken: string) {
     const userFromDb = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: {id: userId},
     });
 
     if (!userFromDb || !userFromDb.refreshToken)
@@ -121,7 +136,7 @@ export class AuthService {
 
     if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
 
-    const { id, email, role } = userFromDb;
+    const {id, email, role} = userFromDb;
     const tokens = await this.getTokens(id, email, role);
 
     await this.updateRefreshToken(id, tokens.refreshToken);
@@ -130,7 +145,7 @@ export class AuthService {
   }
 
   async resendVerificationEmail(email: string) {
-    const userFromDb = await this.prisma.user.findUnique({ where: { email } });
+    const userFromDb = await this.prisma.user.findUnique({where: {email}});
 
     if (userFromDb.emailVerified)
       throw new HttpException(
@@ -151,7 +166,7 @@ export class AuthService {
   }
 
   async sendForgotPasswordEmail(email: string) {
-    const userFromDb = await this.prisma.user.findUnique({ where: { email } });
+    const userFromDb = await this.prisma.user.findUnique({where: {email}});
 
     if (!userFromDb)
       throw new HttpException('LOGIN.USER_NOT_FOUND', HttpStatus.NOT_FOUND);
@@ -163,20 +178,23 @@ export class AuthService {
     );
     await this.mailService.sendResetPasswordEmail(
       userFromDb.email,
-      `${process.env.PUBLIC_URL}/auth/verify/${tokenResult.token}`,
+      `${process.env.PUBLIC_URL}/reset-password/${tokenResult.token}`,
     );
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const resetPasswordTokenFromDb = await this.prisma.token.findFirst({
-      where: { token: resetPasswordDto.token, type: TokenEnum.RESET_PASSWORD },
+      where: {token: resetPasswordDto.token, type: TokenEnum.RESET_PASSWORD},
     });
 
     if (!resetPasswordTokenFromDb)
-      throw new ForbiddenException('Access Denied');
+      throw new HttpException(
+        'RESET_PASSWORD.TOKEN_NOT_FOUND',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
 
     const userFromDb = await this.prisma.user.findUnique({
-      where: { email: resetPasswordTokenFromDb.email },
+      where: {email: resetPasswordTokenFromDb.email},
     });
 
     if (!userFromDb) throw new ForbiddenException('Access Denied');
@@ -196,7 +214,7 @@ export class AuthService {
       password: resetPasswordDto.newPassword,
     });
     await this.prisma.token.delete({
-      where: { id: resetPasswordTokenFromDb.id },
+      where: {id: resetPasswordTokenFromDb.id},
     });
   }
 
@@ -208,8 +226,8 @@ export class AuthService {
     const hashedRefreshToken = await this.hashData(refreshToken);
 
     await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: hashedRefreshToken },
+      where: {id: userId},
+      data: {refreshToken: hashedRefreshToken},
     });
   }
 
@@ -251,14 +269,14 @@ export class AuthService {
     type: TokenEnum,
   ): Promise<TokenEntity> {
     let emailVerificationToken = await this.prisma.token.findFirst({
-      where: { email: email, type },
+      where: {email: email, type},
     });
 
     if (
       emailVerificationToken &&
       (new Date().getTime() - emailVerificationToken.updatedAt.getTime()) /
-        60000 <
-        15
+      60000 <
+      15
     ) {
       throw new HttpException(
         'LOGIN.EMAIL_SENT_RECENTLY',
@@ -270,7 +288,7 @@ export class AuthService {
 
     if (emailVerificationToken) {
       const updatedToken = await this.prisma.token.update({
-        where: { id: emailVerificationToken.id },
+        where: {id: emailVerificationToken.id},
         data: {
           token,
         },

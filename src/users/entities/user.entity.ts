@@ -19,7 +19,7 @@ export class UserEntity implements User {
   @Exclude()
   password: string;
 
-  @Exclude()
+  @ApiProperty()
   refreshToken: string;
 
   @ApiProperty({

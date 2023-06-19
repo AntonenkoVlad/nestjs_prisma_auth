@@ -10,6 +10,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.enableCors();
 
   const config = new DocumentBuilder()
     .setTitle('Median')
